@@ -7,7 +7,6 @@ import os
 from crewai import Crew, Process, Task
 
 from src.agents import TutorAgents, build_agents
-from src.tools import build_tenant_tools
 from utils.db_sync import ensure_tenant_knowledge_base
 
 
@@ -21,8 +20,8 @@ def _build_tasks(agents: TutorAgents) -> tuple[Task, Task, Task]:
             "Prepare curriculum context for tenant '{tenant_id}' and topic '{topic}'.\n"
             "Student ID: {student_id}\n"
             "Student question: {question}\n\n"
-            "Use curriculum_lookup, reading_passage_search, and tenant_knowledge_search "
-            "to collect objectives, prerequisites, and supporting passages."
+            "Use MCP tools curriculum_lookup, reading_passage_search, and tenant_knowledge_search. "
+            "Always pass tenant_id='{tenant_id}' when invoking tenant-scoped tools."
         ),
         expected_output=(
             "A concise curriculum briefing with learning objectives, prerequisites, "
@@ -49,7 +48,7 @@ def _build_tasks(agents: TutorAgents) -> tuple[Task, Task, Task]:
     review_task = Task(
         description=(
             "Review the draft tutoring response for topic '{topic}'.\n"
-            "Use misconception_check against the draft answer.\n"
+            "Use MCP tool misconception_check with tenant_id='{tenant_id}'.\n"
             "Fix factual errors, remove confusing language, and return the final "
             "student-facing answer only."
         ),
@@ -75,8 +74,7 @@ def run_tutor_session(
         )
 
     ensure_tenant_knowledge_base(tenant_id)
-    tools = build_tenant_tools(tenant_id)
-    agents = build_agents(tenant_id, tools)
+    agents = build_agents(tenant_id)
     research_task, tutoring_task, review_task = _build_tasks(agents)
 
     crew = Crew(

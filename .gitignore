@@ -34,6 +34,7 @@ htmlcov/
 
 # Runtime data
 data/chroma/
+data/vector_store/
 data/student_mastery.json
 data/student_mastery.json.tmp
 *.log

@@ -6,10 +6,13 @@ import os
 from dataclasses import dataclass
 
 from crewai import Agent, LLM
-from crewai.tools import BaseTool
+from crewai.mcp.config import MCPServerHTTP
 
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini/gemini-2.5-flash")
 GEMINI_LLM = LLM(model=GEMINI_MODEL)
+
+# CrewAI string MCP refs only allow https:// URLs; localhost http requires MCPServerHTTP.
+MCP_SERVER_ENDPOINT = os.getenv("MCP_SERVER_URL", "http://localhost:8001/mcp")
 
 
 @dataclass(frozen=True)
@@ -19,11 +22,20 @@ class TutorAgents:
     reviewer: Agent
 
 
-def build_agents(tenant_id: str, tools: list[BaseTool]) -> TutorAgents:
-    """Construct role-specific agents for a single tutoring crew run."""
-    curriculum_tools = [tool for tool in tools if tool.name in {"curriculum_lookup", "reading_passage_search", "tenant_knowledge_search"}]
-    tutor_tools = [tool for tool in tools if tool.name in {"tenant_knowledge_search", "reading_passage_search"}]
-    reviewer_tools = [tool for tool in tools if tool.name == "misconception_check"]
+def _tenant_mcps(tenant_id: str) -> list[MCPServerHTTP]:
+    """Attach tenant context to MCP tool discovery via HTTP headers."""
+    return [
+        MCPServerHTTP(
+            url=MCP_SERVER_ENDPOINT,
+            headers={"X-Tenant-ID": tenant_id},
+        )
+    ]
+
+
+def build_agents(tenant_id: str) -> TutorAgents:
+    """Construct role-specific agents that discover tools from the MCP control plane."""
+    mcps = _tenant_mcps(tenant_id)
+    verbose = os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG"
 
     curriculum_specialist = Agent(
         role="Curriculum Specialist",
@@ -35,8 +47,8 @@ def build_agents(tenant_id: str, tools: list[BaseTool]) -> TutorAgents:
             "You are a Singapore MOE curriculum expert. You map student questions to "
             "syllabus objectives, prerequisites, and reading support materials."
         ),
-        tools=curriculum_tools,
-        verbose=os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG",
+        mcps=mcps,
+        verbose=verbose,
         allow_delegation=False,
         llm=GEMINI_LLM,
     )
@@ -51,8 +63,8 @@ def build_agents(tenant_id: str, tools: list[BaseTool]) -> TutorAgents:
             "You are a patient hybrid tutor who blends Socratic questioning with worked "
             "examples. You never shame the student and you keep language accessible."
         ),
-        tools=tutor_tools,
-        verbose=os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG",
+        mcps=mcps,
+        verbose=verbose,
         allow_delegation=False,
         llm=GEMINI_LLM,
     )
@@ -67,8 +79,8 @@ def build_agents(tenant_id: str, tools: list[BaseTool]) -> TutorAgents:
             "You specialize in common student errors and MOE misconception patterns. "
             "You refine answers for accuracy, clarity, and pedagogical safety."
         ),
-        tools=reviewer_tools,
-        verbose=os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG",
+        mcps=mcps,
+        verbose=verbose,
         allow_delegation=False,
         llm=GEMINI_LLM,
     )
