@@ -1,0 +1,28 @@
+{
+  "primary_4": {
+    "fractions": {
+      "learning_objectives": [
+        "Recognise equivalent fractions",
+        "Add and subtract fractions with the same denominator",
+        "Compare fractions using common denominators"
+      ],
+      "prerequisites": ["division", "parts of a whole", "number lines"],
+      "common_misconceptions": [
+        "Adding numerators and denominators separately without a common denominator",
+        "Assuming a larger denominator always means a larger fraction"
+      ]
+    }
+  },
+  "primary_5": {
+    "decimals": {
+      "learning_objectives": [
+        "Convert between fractions and decimals",
+        "Compare and order decimals to two decimal places"
+      ],
+      "prerequisites": ["place value", "fractions"],
+      "common_misconceptions": [
+        "Thinking 0.45 is greater than 0.5 because 45 > 5"
+      ]
+    }
+  }
+}

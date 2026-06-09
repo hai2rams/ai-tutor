@@ -1,0 +1,12 @@
+# Multi-tenant hybrid AI tutor — pinned stable stack (verified 2026-06-09)
+# crewai[tools] installs crewai + crewai-tools in one pass.
+# crewai 1.14.6 requires chromadb~=1.1.0 and pydantic<2.13 — do not bump those without checking crewai release notes.
+
+crewai[tools,google-genai]==1.14.6
+chromadb==1.1.1
+pydantic==2.12.5
+fastapi==0.136.3
+
+# ASGI server (run: python main.py)
+uvicorn[standard]==0.34.3
+python-dotenv==1.2.2
