@@ -13,6 +13,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from src.tasks import TutorSessionError, run_tutor_session
+from utils.db_sync import derive_session_score, update_student_mastery
 
 load_dotenv()
 
@@ -89,6 +90,16 @@ async def create_tutor_session(
         message = str(exc)
         status_code = 503 if "GEMINI_API_KEY" in message else 502
         raise HTTPException(status_code=status_code, detail=message) from exc
+
+    session_score = derive_session_score(payload.question, answer)
+    await asyncio.to_thread(
+        update_student_mastery,
+        tenant_id,
+        payload.student_id,
+        payload.topic,
+        session_score,
+        answer,
+    )
 
     return TutorSessionResponse(
         tenant_id=tenant_id,
